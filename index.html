@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Woolink | 写真で交換日記</title>
+<title>Woolink | 交換日記</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -51,28 +51,45 @@
         戻る
       </button>
 
-      <h1 class="page-title">写真で交換日記</h1>
-      <p class="page-subtitle">写真からショート風動画を作ります</p>
-
-      <label class="file-select" id="fileSelectLabel" for="photoInput">
-        <span id="fileSelectText">ファイルを選択（最大10枚・複数選択可）</span>
-        <input type="file" id="photoInput" accept="image/*" multiple hidden>
-      </label>
-
-      <div class="thumb-strip hidden" id="thumbStrip"></div>
-
-      <button class="generate-btn" id="generateBtn" disabled>動画を生成する！</button>
-
-      <div class="result-area hidden" id="resultArea">
-        <div class="video-frame">
-          <div class="frame-grid" id="frameGrid"></div>
-          <span class="play-badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5v14l11-7z" fill="#fff"/></svg>
-          </span>
-        </div>
-        <p class="result-caption" id="resultCaption">動画が完成しました！</p>
-        <a class="next-btn" href="placeholder.html?title=確認">確認</a>
+      <div class="content-preview">
+        <p>内容<br>動画か日記の文章</p>
       </div>
+
+      <h1 class="section-title center">誰に送る？</h1>
+
+      <button type="button" class="stranger-btn" id="strangerBtn">初めて出会う誰かに</button>
+
+      <h2 class="section-title">友達に送る</h2>
+      <input type="text" class="friend-input" id="friendInput" placeholder="入力">
+
+      <h2 class="section-title">
+        <svg class="star-icon" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M12 2l2.9 6.6L22 9.3l-5 4.9 1.2 7.1L12 17.8l-6.2 3.5L7 14.2 2 9.3l7.1-.7z" fill="#f2c94c"/></svg>
+        「きいてほしい」した人
+      </h2>
+      <div class="avatar-row">
+        <button type="button" class="avatar-item" data-name="Sora">
+          <span class="avatar avatar-a"></span>
+          <span class="avatar-name">Sora</span>
+        </button>
+      </div>
+
+      <h2 class="section-title">最近指定してくれた人</h2>
+      <div class="avatar-row">
+        <button type="button" class="avatar-item" data-name="Haru">
+          <span class="avatar avatar-b"></span>
+          <span class="avatar-name">Haru</span>
+        </button>
+        <button type="button" class="avatar-item" data-name="Yuki">
+          <span class="avatar avatar-c"></span>
+          <span class="avatar-name">Yuki</span>
+        </button>
+        <button type="button" class="avatar-item" data-name="Mei">
+          <span class="avatar avatar-d"></span>
+          <span class="avatar-name">Mei</span>
+        </button>
+      </div>
+
+      <a class="send-btn" id="sendBtn" href="placeholder.html?title=送信">送信</a>
     </div>
   </main>
 
@@ -103,91 +120,57 @@
     }
   });
 
-  /* ---------- 写真の選択（複数・最大10枚・一括アップロード対応） ---------- */
-  const MAX_PHOTOS = 10;
-  const photoInput = document.getElementById('photoInput');
-  const fileSelectText = document.getElementById('fileSelectText');
-  const fileSelectLabel = document.getElementById('fileSelectLabel');
-  const thumbStrip = document.getElementById('thumbStrip');
-  const generateBtn = document.getElementById('generateBtn');
-  const resultArea = document.getElementById('resultArea');
-  const frameGrid = document.getElementById('frameGrid');
-  const resultCaption = document.getElementById('resultCaption');
+  /* ---------- 送り先の選択（初めて出会う誰か／友達アバター／入力、いずれか1つ） ---------- */
+  const strangerBtn = document.getElementById('strangerBtn');
+  const friendInput = document.getElementById('friendInput');
+  const avatarItems = document.querySelectorAll('.avatar-item');
+  const sendBtn = document.getElementById('sendBtn');
 
-  let selectedDataUrls = [];
-
-  function readFilesAsDataUrls(files) {
-    return Promise.all(files.map(file => new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    })));
+  function clearSelection(except) {
+    strangerBtn.classList.remove('is-selected');
+    avatarItems.forEach(a => a.classList.remove('is-selected'));
+    if (except !== 'input') friendInput.value = friendInput.value; // no-op, kept for clarity
   }
 
-  function renderThumbs() {
-    thumbStrip.innerHTML = '';
-    if (selectedDataUrls.length === 0) {
-      thumbStrip.classList.add('hidden');
-      return;
-    }
-    thumbStrip.classList.remove('hidden');
-    selectedDataUrls.forEach(url => {
-      const img = document.createElement('img');
-      img.src = url;
-      img.className = 'thumb';
-      img.alt = '選択した写真';
-      thumbStrip.appendChild(img);
+  function updateSendState() {
+    const hasSelection =
+      strangerBtn.classList.contains('is-selected') ||
+      [...avatarItems].some(a => a.classList.contains('is-selected')) ||
+      friendInput.value.trim().length > 0;
+    sendBtn.classList.toggle('is-disabled', !hasSelection);
+  }
+
+  strangerBtn.addEventListener('click', () => {
+    clearSelection();
+    strangerBtn.classList.add('is-selected');
+    friendInput.value = '';
+    updateSendState();
+  });
+
+  avatarItems.forEach(item => {
+    item.addEventListener('click', () => {
+      clearSelection();
+      item.classList.add('is-selected');
+      friendInput.value = '';
+      updateSendState();
     });
-  }
+  });
 
-  photoInput.addEventListener('change', async () => {
-    resultArea.classList.add('hidden');
-    generateBtn.textContent = '動画を生成する！';
-
-    const files = Array.from(photoInput.files || []);
-    const overLimit = files.length > MAX_PHOTOS;
-    const trimmed = files.slice(0, MAX_PHOTOS);
-
-    if (trimmed.length === 0) {
-      selectedDataUrls = [];
-      fileSelectText.textContent = 'ファイルを選択（最大10枚・複数選択可）';
-      fileSelectLabel.classList.remove('has-file');
-      generateBtn.disabled = true;
-      renderThumbs();
-      return;
+  friendInput.addEventListener('input', () => {
+    if (friendInput.value.trim().length > 0) {
+      strangerBtn.classList.remove('is-selected');
+      avatarItems.forEach(a => a.classList.remove('is-selected'));
     }
-
-    selectedDataUrls = await readFilesAsDataUrls(trimmed);
-    fileSelectText.textContent = trimmed.length + '枚選択中' + (overLimit ? '（最大10枚までです）' : '');
-    fileSelectLabel.classList.add('has-file');
-    generateBtn.disabled = false;
-    renderThumbs();
+    updateSendState();
   });
 
-  /* ---------- 動画を生成する（選択した写真を使ったデモ演出） ---------- */
-  generateBtn.addEventListener('click', () => {
-    if (selectedDataUrls.length === 0) return;
-
-    generateBtn.disabled = true;
-    generateBtn.textContent = '生成中…';
-    resultArea.classList.add('hidden');
-
-    setTimeout(() => {
-      frameGrid.innerHTML = '';
-      frameGrid.className = 'frame-grid count-' + Math.min(selectedDataUrls.length, 4);
-      selectedDataUrls.slice(0, 4).forEach(url => {
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = '選択した写真';
-        frameGrid.appendChild(img);
-      });
-
-      resultCaption.textContent = '動画が完成しました！（' + selectedDataUrls.length + '枚の写真から作成）';
-      resultArea.classList.remove('hidden');
-      generateBtn.textContent = '動画を生成する！';
-      generateBtn.disabled = false;
-    }, 1500);
+  sendBtn.addEventListener('click', (e) => {
+    if (sendBtn.classList.contains('is-disabled')) {
+      e.preventDefault();
+    }
   });
+
+  updateSendState();
 </script>
 
 </body>
